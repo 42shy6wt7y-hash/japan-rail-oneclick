@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>日本铁路一键行程助手</title>
+    <link rel="stylesheet" href="./styles.css">
+    <script defer src="./js/data.js"></script>
+    <script defer src="./js/engine.js"></script>
+    <script defer src="./js/app.js"></script>
+  </head>
+  <body>
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">Japan Rail OneClick</p>
+        <h1>日本铁路一键行程助手</h1>
+      </div>
+      <div class="status-pill" id="extensionStatus">扩展状态检测中</div>
+    </header>
+
+    <main class="app-shell">
+      <section class="search-panel" aria-label="行程搜索">
+        <form id="searchForm" class="search-form">
+          <div class="field-group">
+            <label for="fromStation">起点</label>
+            <input id="fromStation" name="from" list="stationList" value="东京" autocomplete="off" required>
+          </div>
+          <button class="swap-button" type="button" id="swapStations" title="交换起终点" aria-label="交换起终点">⇄</button>
+          <div class="field-group">
+            <label for="toStation">终点</label>
+            <input id="toStation" name="to" list="stationList" value="京都" autocomplete="off" required>
+          </div>
+          <datalist id="stationList"></datalist>
+
+          <div class="form-grid">
+            <div class="field-group">
+              <label for="travelDate">日期</label>
+              <input id="travelDate" name="date" type="date" required>
+            </div>
+            <div class="field-group">
+              <label for="travelTime">出发时间</label>
+              <input id="travelTime" name="time" type="time" value="09:00" required>
+            </div>
+            <div class="field-group">
+              <label for="adults">成人</label>
+              <input id="adults" name="adults" type="number" min="1" max="8" value="1">
+            </div>
+            <div class="field-group">
+              <label for="children">儿童</label>
+              <input id="children" name="children" type="number" min="0" max="8" value="0">
+            </div>
+          </div>
+
+          <div class="option-grid">
+            <label class="check-row">
+              <input type="checkbox" name="luggage" id="luggage">
+              <span>大件行李</span>
+            </label>
+            <label class="check-row">
+              <input type="checkbox" name="jrPass" id="jrPass">
+              <span>已有 JR Pass</span>
+            </label>
+            <label class="check-row">
+              <input type="checkbox" name="avoidNozomi" id="avoidNozomi">
+              <span>避开 Nozomi / Mizuho</span>
+            </label>
+          </div>
+
+          <button class="primary-action" type="submit">搜索方案</button>
+        </form>
+
+        <div class="source-note">
+          <strong>票务边界</strong>
+          <p>此原型不保存账号、护照或银行卡信息；最终下单和支付必须在官方页面确认。</p>
+        </div>
+      </section>
+
+      <section class="results-panel" aria-label="换乘方案">
+        <div class="results-head">
+          <div>
+            <p class="eyebrow">Routes</p>
+            <h2 id="routeTitle">东京 → 京都</h2>
+          </div>
+          <div class="sort-tabs" role="tablist" aria-label="排序">
+            <button type="button" class="tab active" data-sort="recommended">推荐</button>
+            <button type="button" class="tab" data-sort="fastest">最快</button>
+            <button type="button" class="tab" data-sort="cheapest">低价</button>
+          </div>
+        </div>
+        <div id="routeMap" class="route-map" aria-label="路线示意"></div>
+        <div id="results" class="route-list"></div>
+      </section>
+
+      <aside class="booking-panel" aria-label="购票任务">
+        <div class="booking-head">
+          <p class="eyebrow">Checkout</p>
+          <h2>购票任务</h2>
+        </div>
+        <div id="selectedPlan" class="selected-plan empty-state">
+          选择一个方案后，这里会整理每段官方购票入口。
+        </div>
+      </aside>
+    </main>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  </body>
+</html>

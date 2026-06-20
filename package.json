@@ -1,0 +1,18 @@
+{
+  "name": "japan-rail-oneclick",
+  "version": "0.1.0",
+  "private": true,
+  "description": "A no-server Japanese rail itinerary planner and browser-extension purchase assistant prototype.",
+  "scripts": {
+    "test": "node --test tests/*.test.js",
+    "serve": "node scripts/serve.mjs"
+  },
+  "keywords": [
+    "japan",
+    "rail",
+    "shinkansen",
+    "browser-extension",
+    "travel"
+  ],
+  "license": "MIT"
+}

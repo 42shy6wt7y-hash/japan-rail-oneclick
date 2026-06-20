@@ -1,0 +1,50 @@
+{
+  "manifest_version": 3,
+  "name": "Japan Rail OneClick Assistant",
+  "version": "0.1.0",
+  "description": "No-server Japanese rail itinerary planner with safe official booking-page assistance.",
+  "permissions": [
+    "storage",
+    "activeTab",
+    "tabs"
+  ],
+  "host_permissions": [
+    "https://smart-ex.jp/*",
+    "https://*.smart-ex.jp/*",
+    "https://www.eki-net.com/*",
+    "https://*.eki-net.com/*",
+    "https://www.westjr.co.jp/*",
+    "https://*.westjr.co.jp/*",
+    "https://www.jrkyushu.co.jp/*",
+    "https://*.jrkyushu.co.jp/*",
+    "https://www.jrhokkaido.co.jp/*",
+    "https://*.jrhokkaido.co.jp/*"
+  ],
+  "action": {
+    "default_title": "JR OneClick",
+    "default_popup": "extension/popup.html"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://smart-ex.jp/*",
+        "https://*.smart-ex.jp/*",
+        "https://www.eki-net.com/*",
+        "https://*.eki-net.com/*",
+        "https://www.westjr.co.jp/*",
+        "https://*.westjr.co.jp/*",
+        "https://www.jrkyushu.co.jp/*",
+        "https://*.jrkyushu.co.jp/*",
+        "https://www.jrhokkaido.co.jp/*",
+        "https://*.jrhokkaido.co.jp/*"
+      ],
+      "js": [
+        "extension/content.js"
+      ],
+      "css": [
+        "extension/content.css"
+      ],
+      "run_at": "document_idle"
+    }
+  ]
+}
