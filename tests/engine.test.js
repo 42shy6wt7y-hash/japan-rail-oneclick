@@ -77,3 +77,27 @@ test("groups adjacent legs by official seller", () => {
   assert.equal(segments[0].payload.children, 1);
   assert.ok(segments[0].purchaseUrl.startsWith("https://"));
 });
+
+test("plans Kamisuwa to Kyoto with transfer and purchase segments", () => {
+  const output = engine.search({
+    from: "Kamisuwa",
+    to: "Kyoto",
+    date: "2026-08-04",
+    time: "09:00",
+    adults: 1
+  });
+  assert.equal(output.error, undefined);
+  assert.ok(output.plans.length > 0);
+
+  const plan = output.plans[0];
+  const timeline = engine.buildTimeline(plan, "2026-08-04", "09:00");
+  const segments = engine.groupBookingSegments(plan, timeline, { adults: 1 });
+  assert.ok(plan.legs.some((leg) => leg.from === "kamisuwa" || leg.to === "kamisuwa"));
+  assert.deepEqual(segments.map((segment) => segment.seller.id), ["jrEast", "jrCentral", "smartEx"]);
+});
+
+test("suggests Kamisuwa for common Chinese and Japanese variants", () => {
+  assert.equal(engine.findStation("上诹访").id, "kamisuwa");
+  assert.equal(engine.findStation("上諏訪").id, "kamisuwa");
+  assert.equal(engine.suggestStations("上諏方")[0].id, "kamisuwa");
+});

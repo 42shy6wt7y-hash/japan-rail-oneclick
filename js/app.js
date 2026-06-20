@@ -5,7 +5,10 @@
     sort: "recommended",
     plans: [],
     selectedId: null,
-    input: {}
+    input: {},
+    lastError: null,
+    suggestions: [],
+    missingField: null
   };
 
   const $ = (selector) => document.querySelector(selector);
@@ -66,8 +69,28 @@
   function renderResults() {
     const plans = ENGINE.sortPlans(state.plans, state.sort);
     if (!plans.length) {
-      results.innerHTML = `<div class="empty-state">没有找到合适方案。试试关闭“避开 Nozomi/Mizuho”或换一个站点。</div>`;
+      const suggestionHtml = state.suggestions.length ? `
+        <div class="suggestion-row">
+          ${state.suggestions.map((station) => `<button class="suggestion-button" type="button" data-suggestion="${station.name}">${station.name}</button>`).join("")}
+        </div>
+      ` : "";
+      results.innerHTML = `
+        <div class="empty-state">
+          <div>
+            <strong>${state.lastError || "没有找到合适方案。"}</strong>
+            <p>${state.suggestions.length ? "你是不是想输入这些站？" : "当前是离线样例数据，建议换一个已覆盖站点或关闭筛选条件。"}</p>
+            ${suggestionHtml}
+          </div>
+        </div>
+      `;
       routeMap.innerHTML = "";
+      results.querySelectorAll("[data-suggestion]").forEach((button) => {
+        button.addEventListener("click", () => {
+          const target = state.missingField === "to" ? $("#toStation") : $("#fromStation");
+          target.value = button.dataset.suggestion;
+          $("#searchForm").requestSubmit();
+        });
+      });
       return;
     }
 
@@ -200,6 +223,9 @@
     if (output.error) {
       state.plans = [];
       state.selectedId = null;
+      state.lastError = output.error;
+      state.suggestions = output.suggestions || [];
+      state.missingField = output.errorType === "unknown-to" ? "to" : output.errorType === "unknown-from" ? "from" : null;
       $("#routeTitle").textContent = "未找到路线";
       renderResults();
       showToast(output.error);
@@ -207,6 +233,9 @@
     }
     state.plans = output.plans;
     state.selectedId = null;
+    state.lastError = null;
+    state.suggestions = [];
+    state.missingField = null;
     $("#routeTitle").textContent = `${output.from.name} → ${output.to.name}`;
     renderResults();
   }

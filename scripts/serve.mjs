@@ -1,9 +1,9 @@
 import { createServer } from "node:http";
 import { createReadStream, existsSync } from "node:fs";
-import { extname, join, normalize } from "node:path";
+import { extname, join, normalize, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-const root = normalize(fileURLToPath(new URL("..", import.meta.url)));
+const root = resolve(fileURLToPath(new URL("..", import.meta.url)));
 const port = Number(process.env.PORT || 4173);
 const types = {
   ".html": "text/html; charset=utf-8",
@@ -15,8 +15,9 @@ const types = {
 const server = createServer((request, response) => {
   const url = new URL(request.url || "/", `http://localhost:${port}`);
   const safePath = normalize(url.pathname).replace(/^(\.\.[/\\])+/, "");
-  const filePath = join(root, safePath === "/" ? "index.html" : safePath);
-  if (!filePath.startsWith(root) || !existsSync(filePath)) {
+  const relativePath = safePath === "/" || safePath === "\\" ? "index.html" : safePath.replace(/^[/\\]/, "");
+  const filePath = resolve(join(root, relativePath));
+  if (!(filePath === root || filePath.startsWith(root + "\\")) || !existsSync(filePath)) {
     response.writeHead(404);
     response.end("Not found");
     return;

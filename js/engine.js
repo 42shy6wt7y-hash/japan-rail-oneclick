@@ -27,6 +27,50 @@
     }) || null;
   }
 
+  function stationNames(station) {
+    return [station.name, ...station.aliases, station.id];
+  }
+
+  function editDistance(a, b) {
+    const left = normalizeText(a);
+    const right = normalizeText(b);
+    if (!left || !right) return Math.max(left.length, right.length);
+    const dp = Array.from({ length: left.length + 1 }, () => Array(right.length + 1).fill(0));
+    for (let row = 0; row <= left.length; row += 1) dp[row][0] = row;
+    for (let col = 0; col <= right.length; col += 1) dp[0][col] = col;
+    for (let row = 1; row <= left.length; row += 1) {
+      for (let col = 1; col <= right.length; col += 1) {
+        const cost = left[row - 1] === right[col - 1] ? 0 : 1;
+        dp[row][col] = Math.min(
+          dp[row - 1][col] + 1,
+          dp[row][col - 1] + 1,
+          dp[row - 1][col - 1] + cost
+        );
+      }
+    }
+    return dp[left.length][right.length];
+  }
+
+  function suggestStations(query, limit = 5) {
+    const normalized = normalizeText(query);
+    if (!normalized) return [];
+    return DATA.stations
+      .map((station) => {
+        const names = stationNames(station);
+        const best = Math.min(...names.map((name) => {
+          const candidate = normalizeText(name);
+          if (candidate === normalized) return 0;
+          if (candidate.includes(normalized) || normalized.includes(candidate)) return 1;
+          return editDistance(normalized, candidate);
+        }));
+        return { station, score: best };
+      })
+      .filter((item) => item.score <= Math.max(2, Math.ceil(normalized.length / 2)))
+      .sort((a, b) => a.score - b.score || a.station.name.localeCompare(b.station.name, "zh-CN"))
+      .slice(0, limit)
+      .map((item) => item.station);
+  }
+
   function buildGraph() {
     const graph = new Map();
     for (const station of DATA.stations) graph.set(station.id, []);
@@ -244,8 +288,12 @@
     const from = findStation(input.from);
     const to = findStation(input.to);
     if (!from || !to) {
+      const missingValue = !from ? input.from : input.to;
+      const suggestions = suggestStations(missingValue);
       return {
         error: !from ? `没有识别起点：${input.from}` : `没有识别终点：${input.to}`,
+        errorType: !from ? "unknown-from" : "unknown-to",
+        suggestions,
         plans: []
       };
     }
@@ -260,13 +308,21 @@
       avoidNozomi: Boolean(input.avoidNozomi)
     };
     const plans = collectRoutes(from.id, to.id, options);
-    return { from, to, options, plans };
+    return {
+      from,
+      to,
+      options,
+      plans,
+      error: plans.length ? undefined : "当前离线数据还没有覆盖这两个站之间的连通方案。",
+      errorType: plans.length ? undefined : "no-route"
+    };
   }
 
   global.JR_ENGINE = {
     MIN_TRANSFER,
     normalizeText,
     findStation,
+    suggestStations,
     stationLabel,
     collectRoutes,
     sortPlans,
