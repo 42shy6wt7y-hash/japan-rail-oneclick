@@ -87,6 +87,8 @@
     ["nakatsugawa", "nagoya", 80, 4510, "特急 Shinano", "limited-express", "jrCentral", "blue", { jrPass: true }],
     ["tokyo", "nagoya", 101, 11290, "东海道新干线 Nozomi", "shinkansen", "smartEx", "blue", { passExcluded: true, luggageReservation: true }],
     ["tokyo", "nagoya", 112, 11290, "东海道新干线 Hikari", "shinkansen", "smartEx", "blue", { jrPass: true, luggageReservation: true }],
+    ["tokyo", "kyoto", 135, 14170, "东海道新干线 Nozomi", "shinkansen", "smartEx", "blue", { passExcluded: true, luggageReservation: true }],
+    ["tokyo", "kyoto", 160, 14170, "东海道新干线 Hikari", "shinkansen", "smartEx", "blue", { jrPass: true, luggageReservation: true }],
     ["nagoya", "kyoto", 34, 5910, "东海道新干线 Nozomi", "shinkansen", "smartEx", "blue", { passExcluded: true, luggageReservation: true }],
     ["nagoya", "kyoto", 41, 5910, "东海道新干线 Hikari", "shinkansen", "smartEx", "blue", { jrPass: true, luggageReservation: true }],
     ["kyoto", "shin-osaka", 14, 3070, "东海道新干线", "shinkansen", "smartEx", "blue", { jrPass: true, luggageReservation: true }],

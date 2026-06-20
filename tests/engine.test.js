@@ -29,6 +29,36 @@ test("returns direct and transfer-aware routes", () => {
   assert.ok(output.plans.some((plan) => plan.legs.some((leg) => leg.seller === "smartEx")));
 });
 
+test("uses direct Shinkansen service from Tokyo to Kyoto", () => {
+  const output = engine.search({
+    from: "Tokyo",
+    to: "Kyoto",
+    date: "2026-07-20",
+    time: "09:00",
+    adults: 1
+  });
+
+  assert.equal(output.error, undefined);
+  assert.equal(output.plans[0].direct, true);
+  assert.equal(output.plans[0].transfers, 0);
+  assert.equal(output.plans[0].legs[0].from, "tokyo");
+  assert.equal(output.plans[0].legs[0].to, "kyoto");
+});
+
+test("can avoid Nozomi without inventing a transfer on Tokyo to Kyoto", () => {
+  const output = engine.search({
+    from: "Tokyo",
+    to: "Kyoto",
+    date: "2026-07-20",
+    time: "09:00",
+    avoidNozomi: true
+  });
+
+  assert.equal(output.error, undefined);
+  assert.equal(output.plans[0].direct, true);
+  assert.match(output.plans[0].legs[0].line, /Hikari/);
+});
+
 test("JR Pass mode penalizes pass-excluded trains", () => {
   const output = engine.search({
     from: "东京",
