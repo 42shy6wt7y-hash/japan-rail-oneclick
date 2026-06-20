@@ -1,6 +1,83 @@
 (function attachEngine(global) {
   const DATA = global.JR_DATA;
+  const GENERATED = global.JR_GENERATED_NETWORK;
   const MIN_TRANSFER = 10;
+  const MAX_EXPANSIONS = 18000;
+  let mergedNetworkCache = null;
+
+  function exactStationIndex(stations) {
+    const index = new Map();
+    for (const station of stations) {
+      for (const name of stationNames(station)) {
+        const normalized = normalizeText(name);
+        if (normalized && !index.has(normalized)) index.set(normalized, station);
+      }
+    }
+    return index;
+  }
+
+  function mergedNetwork() {
+    if (mergedNetworkCache) return mergedNetworkCache;
+    const generatedStations = GENERATED?.stations?.length ? GENERATED.stations.map((station) => ({
+      ...station,
+      aliases: [...new Set([station.name, ...(station.aliases || [])].filter(Boolean))]
+    })) : [];
+    const generatedEdges = GENERATED?.edges?.length ? GENERATED.edges.map((edge) => ({
+      ...edge,
+      color: edge.mode === "shinkansen" ? "blue" : edge.mode === "metro" ? "teal" : "green",
+      flags: edge.flags || {},
+      source: "generated"
+    })) : [];
+
+    if (!generatedStations.length) {
+      mergedNetworkCache = {
+        stations: DATA.stations,
+        edges: DATA.edges.map((edge) => ({ ...edge, flags: edge.flags || {}, priority: "manual" }))
+      };
+      return mergedNetworkCache;
+    }
+
+    const stationIndex = exactStationIndex(generatedStations);
+    const stationById = new Map(generatedStations.map((station) => [station.id, station]));
+    const manualToCanonical = new Map();
+
+    for (const manual of DATA.stations) {
+      const canonical = stationNames(manual)
+        .map((name) => stationIndex.get(normalizeText(name)))
+        .find(Boolean);
+
+      if (canonical) {
+        canonical.aliases = [...new Set([...canonical.aliases, manual.name, ...(manual.aliases || [])].filter(Boolean))];
+        manualToCanonical.set(manual.id, canonical.id);
+      } else {
+        stationById.set(manual.id, { ...manual, aliases: [...new Set([manual.name, ...(manual.aliases || [])])] });
+        manualToCanonical.set(manual.id, manual.id);
+      }
+    }
+
+    const manualEdges = DATA.edges.map((edge) => ({
+      ...edge,
+      from: manualToCanonical.get(edge.from) || edge.from,
+      to: manualToCanonical.get(edge.to) || edge.to,
+      flags: edge.flags || {},
+      priority: "manual",
+      source: "manual"
+    }));
+
+    mergedNetworkCache = {
+      stations: [...stationById.values()],
+      edges: [...manualEdges, ...generatedEdges]
+    };
+    return mergedNetworkCache;
+  }
+
+  function allStations() {
+    return mergedNetwork().stations;
+  }
+
+  function allEdges() {
+    return mergedNetwork().edges;
+  }
 
   function normalizeText(value) {
     return String(value || "")
@@ -11,17 +88,17 @@
   }
 
   function stationLabel(id) {
-    const station = DATA.stations.find((item) => item.id === id);
+    const station = allStations().find((item) => item.id === id) || DATA.stations.find((item) => item.id === id);
     return station ? station.name : id;
   }
 
   function findStation(query) {
     const normalized = normalizeText(query);
     if (!normalized) return null;
-    return DATA.stations.find((station) => {
+    return allStations().find((station) => {
       const names = [station.id, station.name, ...station.aliases];
       return names.some((name) => normalizeText(name) === normalized);
-    }) || DATA.stations.find((station) => {
+    }) || allStations().find((station) => {
       const names = [station.name, ...station.aliases];
       return names.some((name) => normalizeText(name).includes(normalized));
     }) || null;
@@ -54,7 +131,7 @@
   function suggestStations(query, limit = 5) {
     const normalized = normalizeText(query);
     if (!normalized) return [];
-    return DATA.stations
+    return allStations()
       .map((station) => {
         const names = stationNames(station);
         const best = Math.min(...names.map((name) => {
@@ -73,10 +150,19 @@
 
   function buildGraph() {
     const graph = new Map();
-    for (const station of DATA.stations) graph.set(station.id, []);
-    for (const edge of DATA.edges) {
+    for (const station of allStations()) graph.set(station.id, []);
+    for (const edge of allEdges()) {
+      if (!graph.has(edge.from)) graph.set(edge.from, []);
+      if (!graph.has(edge.to)) graph.set(edge.to, []);
       graph.get(edge.from).push(edge);
       graph.get(edge.to).push({ ...edge, from: edge.to, to: edge.from, reverse: true });
+    }
+    for (const edges of graph.values()) {
+      edges.sort((a, b) => {
+        const manual = (b.priority === "manual") - (a.priority === "manual");
+        if (manual) return manual;
+        return a.minutes - b.minutes;
+      });
     }
     return graph;
   }
@@ -145,19 +231,26 @@
 
   function collectRoutes(fromId, toId, options = {}) {
     const graph = buildGraph();
-    const queue = [{ station: fromId, legs: [], visited: new Set([fromId]) }];
+    const queue = [{ station: fromId, legs: [], visited: new Set([fromId]), cost: 0 }];
     const results = [];
     const seen = new Set();
+    const bestByStation = new Map([[fromId, 0]]);
 
-    while (queue.length && results.length < 18) {
+    let expansions = 0;
+    while (queue.length && results.length < 18 && expansions < MAX_EXPANSIONS) {
+      queue.sort((a, b) => (a.cost || 0) - (b.cost || 0));
       const current = queue.shift();
-      if (current.legs.length > 4) continue;
+      expansions += 1;
+      if (current.legs.length > 10) continue;
 
       for (const edge of graph.get(current.station) || []) {
         if (current.visited.has(edge.to)) continue;
         if (options.avoidNozomi && /Nozomi|Mizuho/i.test(edge.line)) continue;
 
         const nextLegs = [...current.legs, edge];
+        const nextCost = journeyMinutes(nextLegs) + countTransfers(nextLegs) * 20;
+        if (nextCost > (bestByStation.get(edge.to) ?? Infinity) + 35) continue;
+        bestByStation.set(edge.to, Math.min(nextCost, bestByStation.get(edge.to) ?? Infinity));
         if (edge.to === toId) {
           const key = routeKey(nextLegs);
           if (!seen.has(key)) {
@@ -167,7 +260,7 @@
         } else {
           const visited = new Set(current.visited);
           visited.add(edge.to);
-          queue.push({ station: edge.to, legs: nextLegs, visited });
+          queue.push({ station: edge.to, legs: nextLegs, visited, cost: nextCost });
         }
       }
     }
@@ -252,7 +345,7 @@
     }
 
     return groups.map((group, index) => {
-      const seller = DATA.officialSellers[group.seller];
+      const seller = DATA.officialSellers[group.seller] || DATA.officialSellers.manual;
       return {
         id: `${plan.id}-segment-${index + 1}`,
         index: index + 1,
@@ -324,6 +417,7 @@
     findStation,
     suggestStations,
     stationLabel,
+    allStations,
     collectRoutes,
     sortPlans,
     buildTimeline,

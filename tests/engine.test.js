@@ -2,12 +2,13 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 
 require("../js/data.js");
+require("../js/generated/rail-network.generated.js");
 const engine = require("../js/engine.js");
 
 test("finds stations by Chinese and English aliases", () => {
-  assert.equal(engine.findStation("东京").id, "tokyo");
-  assert.equal(engine.findStation("Tokyo").id, "tokyo");
-  assert.equal(engine.findStation("大阪").id, "shin-osaka");
+  assert.equal(engine.findStation("东京").name, "東京");
+  assert.equal(engine.findStation("Tokyo").name, "東京");
+  assert.equal(engine.findStation("大阪").name, "大阪");
 });
 
 test("returns direct and transfer-aware routes", () => {
@@ -24,8 +25,8 @@ test("returns direct and transfer-aware routes", () => {
   });
   assert.equal(output.error, undefined);
   assert.ok(output.plans.length > 0);
-  assert.equal(output.plans[0].from, "tokyo");
-  assert.equal(output.plans[0].to, "kyoto");
+  assert.equal(engine.stationLabel(output.plans[0].from), "東京");
+  assert.equal(engine.stationLabel(output.plans[0].to), "京都");
   assert.ok(output.plans.some((plan) => plan.legs.some((leg) => leg.seller === "smartEx")));
 });
 
@@ -41,8 +42,8 @@ test("uses direct Shinkansen service from Tokyo to Kyoto", () => {
   assert.equal(output.error, undefined);
   assert.equal(output.plans[0].direct, true);
   assert.equal(output.plans[0].transfers, 0);
-  assert.equal(output.plans[0].legs[0].from, "tokyo");
-  assert.equal(output.plans[0].legs[0].to, "kyoto");
+  assert.equal(engine.stationLabel(output.plans[0].legs[0].from), "東京");
+  assert.equal(engine.stationLabel(output.plans[0].legs[0].to), "京都");
 });
 
 test("can avoid Nozomi without inventing a transfer on Tokyo to Kyoto", () => {
@@ -122,12 +123,19 @@ test("plans Kamisuwa to Kyoto with transfer and purchase segments", () => {
   const plan = output.plans[0];
   const timeline = engine.buildTimeline(plan, "2026-08-04", "09:00");
   const segments = engine.groupBookingSegments(plan, timeline, { adults: 1 });
-  assert.ok(plan.legs.some((leg) => leg.from === "kamisuwa" || leg.to === "kamisuwa"));
+  assert.ok(plan.legs.some((leg) => engine.stationLabel(leg.from) === "上諏訪" || engine.stationLabel(leg.to) === "上諏訪"));
   assert.deepEqual(segments.map((segment) => segment.seller.id), ["jrEast", "jrCentral", "smartEx"]);
 });
 
 test("suggests Kamisuwa for common Chinese and Japanese variants", () => {
-  assert.equal(engine.findStation("上诹访").id, "kamisuwa");
-  assert.equal(engine.findStation("上諏訪").id, "kamisuwa");
-  assert.equal(engine.suggestStations("上諏方")[0].id, "kamisuwa");
+  assert.equal(engine.findStation("上诹访").name, "上諏訪");
+  assert.equal(engine.findStation("上諏訪").name, "上諏訪");
+  assert.equal(engine.suggestStations("上諏方")[0].name, "上諏訪");
+});
+
+test("loads generated MLIT N02 station network", () => {
+  assert.ok(globalThis.JR_GENERATED_NETWORK.stations.length > 9000);
+  assert.ok(globalThis.JR_GENERATED_NETWORK.edges.length > 9000);
+  assert.ok(engine.allStations().length > 9000);
+  assert.equal(engine.findStation("古島").name, "古島");
 });

@@ -13,7 +13,7 @@
     { id: "nakatsugawa", name: "中津川", aliases: ["Nakatsugawa", "中津川"], region: "chubu" },
     { id: "nagoya", name: "名古屋", aliases: ["Nagoya", "名古屋"], region: "chubu" },
     { id: "kyoto", name: "京都", aliases: ["Kyoto", "京都"], region: "kansai" },
-    { id: "shin-osaka", name: "新大阪", aliases: ["Shin-Osaka", "Osaka", "大阪", "新大阪"], region: "kansai" },
+    { id: "shin-osaka", name: "新大阪", aliases: ["Shin-Osaka", "新大阪"], region: "kansai" },
     { id: "nara", name: "奈良", aliases: ["Nara", "奈良"], region: "kansai" },
     { id: "kanazawa", name: "金泽", aliases: ["Kanazawa", "金沢", "金泽"], region: "hokuriku" },
     { id: "toyama", name: "富山", aliases: ["Toyama", "富山"], region: "hokuriku" },
@@ -69,6 +69,13 @@
       name: "JR Hokkaido Reservation Guide",
       url: "https://www.jrhokkaido.co.jp/global/english/ticket/",
       coverage: "北海道区域",
+      automation: "manual-confirm"
+    },
+    manual: {
+      id: "manual",
+      name: "Official / station counter confirmation",
+      url: "https://www.jreast.co.jp/multi/en/",
+      coverage: "未映射到特定在线售票渠道的铁路公司",
       automation: "manual-confirm"
     }
   };

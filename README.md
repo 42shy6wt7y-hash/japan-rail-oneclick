@@ -1,66 +1,70 @@
 # Japan Rail OneClick Assistant
 
-一个无服务器的日本铁路中文行程规划和官方购票页辅助原型。用户输入起点、终点、日期和人数后，可以看到直达与换乘方案、预计时间、票价、JR Pass 风险、大件行李提示，以及按官方售票渠道合并后的购票任务。
+A no-server Japanese rail itinerary planner and official booking-page assistant prototype.
 
-## 重要边界
+## What changed
 
-这个项目不会自动提交订单、不会自动付款，也不会保存账号、护照、验证码或银行卡信息。日本铁路票务分散在多个官方渠道，很多页面还有登录、验证码、取票规则和信用卡验证；因此本项目只做“统一规划 + 官方页面预填 + 中文任务浮层”，最终购买必须由用户在官方页面确认。
+The planner is now data-driven instead of relying only on hand-written example routes.
+It imports Japan MLIT National Land Numerical Information railway data (N02, 2022) and generates a browser-loadable station and rail network:
 
-## 当前覆盖
+- 9,000+ station groups
+- 9,000+ adjacent rail edges
+- station aliases for common Chinese / Japanese / English inputs
+- transfer grouping by official booking channel where known
 
-- 常见游客干线：东京、品川、横滨、名古屋、京都、新大阪、奈良、冈山、广岛、博多、鹿儿岛中央、金泽、富山、仙台、盛冈、新青森、新函馆北斗、札幌。
-- 官方渠道任务编排：Smart EX、JR-EAST Train Reservation、JR-WEST ONLINE TRAIN RESERVATION、JR KYUSHU、JR Hokkaido。
-- 购票风险提示：跨售票系统、JR Pass 不覆盖 Nozomi/Mizuho、大件行李预约、组合特急换乘。
+This fixes the core architectural problem: station recognition and basic routing are no longer a tiny demo list.
 
-## 本地使用
+## Important limits
 
-直接打开 `index.html` 即可使用规划页面。也可以启动一个本地静态服务：
+This project still does not provide live train times, live seat availability, exact fares, or automatic payment/ticketing.
+Final booking and payment must happen on official rail-company pages.
+
+The MLIT N02 dataset is useful for national station and railway topology, but it is not a timetable or ticketing API.
+Long-distance limited-express and Shinkansen services may need additional service-pattern data for production-grade routing.
+
+## Local Use
 
 ```bash
 node scripts/serve.mjs
 ```
 
-然后访问 `http://localhost:4173`。
+Open:
 
-## 作为 Chrome / Edge 扩展使用
+```text
+http://localhost:4173
+```
 
-1. 打开浏览器扩展管理页面。
-2. 开启开发者模式。
-3. 选择“加载已解压的扩展”。
-4. 选择本项目根目录，也就是包含 `manifest.json` 的文件夹。
-5. 点击扩展图标打开规划器，选择方案后打开官方购票页。
+You can also load the project root as an unpacked Chrome / Edge extension. The extension shows a Chinese booking-task overlay on supported official railway pages.
 
-官方页面上会出现中文浮层，可以复制任务或尝试预填字段。由于各官方网站字段结构经常变化，预填是尽力辅助，不保证每个页面都能全自动填写。
+## Data Import
 
-## 测试
+Download and unzip MLIT N02 railway data, then run:
 
 ```bash
-npm test
+node scripts/import-mlit-n02.mjs work/n02/N02-22/UTF-8/N02-22_Station.geojson js/generated/rail-network.generated.js
 ```
 
-如果 PowerShell 拦截 `npm.ps1`，可以使用：
+The generated file is committed so the app works without a server.
 
-```powershell
-npm.cmd test
-```
+Official MLIT source:
 
-或直接调用 Node 内置测试 runner：
+https://nlftp.mlit.go.jp/ksj/gml/datalist/KsjTmplt-N02-v3_1.html
 
-```powershell
+## Tests
+
+```bash
 node --test tests\engine.test.js
 ```
 
-## 后续可扩展方向
+## Booking Channels
 
-- 接入真实时刻表或 GTFS 数据源。
-- 添加更多私铁和地方铁路。
-- 为每个官方售票网站维护更精确的页面适配器。
-- 增加浏览器端加密的本地旅客资料模板，但仍不自动提交支付。
+Known online booking channels are mapped conservatively:
 
-## 官方入口
+- Smart EX
+- JR-EAST Train Reservation
+- JR-WEST ONLINE TRAIN RESERVATION
+- JR KYUSHU
+- JR Hokkaido
+- JR-CENTRAL informational fallback
 
-- [Smart EX](https://smart-ex.jp/en/index.php)
-- [JR-EAST Train Reservation](https://www.eki-net.com/en/jreast-train-reservation/top/Index)
-- [JR-WEST ONLINE TRAIN RESERVATION](https://www.westjr.co.jp/global/en/ticket/)
-- [JR KYUSHU](https://www.jrkyushu.co.jp/english/)
-- [JR Hokkaido](https://www.jrhokkaido.co.jp/global/english/)
+Unknown operators fall back to manual official confirmation.

@@ -25,7 +25,12 @@
 
   function populateStations() {
     const list = $("#stationList");
-    list.innerHTML = DATA.stations.map((station) => `<option value="${station.name}"></option>`).join("");
+    const stations = ENGINE.allStations ? ENGINE.allStations() : DATA.stations;
+    list.innerHTML = stations
+      .slice()
+      .sort((a, b) => a.name.localeCompare(b.name, "ja"))
+      .map((station) => `<option value="${station.name}"></option>`)
+      .join("");
   }
 
   function formInput() {
@@ -78,7 +83,7 @@
         <div class="empty-state">
           <div>
             <strong>${state.lastError || "没有找到合适方案。"}</strong>
-            <p>${state.suggestions.length ? "你是不是想输入这些站？" : "当前是离线样例数据，建议换一个已覆盖站点或关闭筛选条件。"}</p>
+            <p>${state.suggestions.length ? "你是不是想输入这些站？" : "当前基础铁路图没有找到可连通路径；离岛、停运区间、跨公司长距离服务可能需要实时/授权数据补充。"}</p>
             ${suggestionHtml}
           </div>
         </div>
